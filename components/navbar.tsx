@@ -102,6 +102,9 @@ export function Navbar() {
               Testimonials
             </Link>
             <div className="pt-4 space-y-2">
+              <div className="flex justify-center pb-2">
+                <ThemeToggle />
+              </div>
               {address ? (
                 <Button variant="outline" className="w-full" asChild>
                   <Link href="/login">
