@@ -6,6 +6,7 @@ import { Testimonials } from '@/components/testimonials'
 import { CTA } from '@/components/cta'
 import { Footer } from '@/components/footer'
 import { Navbar } from '@/components/navbar'
+import ActivityTimeline from '@/components/ActivityTimeline';
 
 export default function Home() {
   return (
@@ -13,6 +14,11 @@ export default function Home() {
       <Navbar />
       <Hero />
       
+      {/* This is the timeline section we added */}
+      <section className="py-12 bg-gray-50">
+        <ActivityTimeline />
+      </section>
+
       <Features />
       <HowItWorks />
       <Benefits />
@@ -20,5 +26,5 @@ export default function Home() {
       <CTA />
       <Footer />
     </main>
-  )
+  );
 }
