@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 import {
   getFreelancerReputation,
   getUserIdByWallet,
 } from '@/lib/reputation'
 
 export const GET = withAuth(async (request: NextRequest, auth) => {
+  const limited = await enforceRateLimit(request, {
+    key: buildRateLimitKey(request, 'freelancer:reputation', auth.walletAddress),
+    limit: 60,
+    windowMs: 60_000,
+  })
+  if (limited) return limited
+
   const userId = await getUserIdByWallet(auth.walletAddress)
   if (userId === null) {
     return NextResponse.json(

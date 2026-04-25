@@ -2,27 +2,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSession, setSessionCookies } from '@/lib/auth/session'
 import { consumeNonce, hasActiveNonce } from '@/lib/auth/store'
 import { sha256Hex } from '@/lib/auth/crypto'
+import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
+import { parseJson } from '@/lib/security/validation'
 import {
   buildAuthMessage,
   isValidStellarAddress,
   normalizeWalletAddress,
   verifyStellarSignature,
 } from '@/lib/auth/stellar'
+import { z } from 'zod'
 
-interface VerifyRequestBody {
-  walletAddress?: string
-  nonce?: string
-  signature?: string
-  message?: string
-}
+const verifyBodySchema = z.object({
+  walletAddress: z.string().trim().min(1).max(56),
+  nonce: z.string().trim().min(1).max(256),
+  signature: z.string().trim().min(1).max(4096),
+  message: z.string().trim().min(1).max(512).optional(),
+})
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body: VerifyRequestBody = await request.json()
+    const parsed = await parseJson(request, verifyBodySchema)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
 
-    const walletAddress = body.walletAddress?.trim()
-    const nonce = body.nonce?.trim()
-    const signature = body.signature?.trim()
+    const walletAddress = body.walletAddress
+    const nonce = body.nonce
+    const signature = body.signature
+
+    const limited = await enforceRateLimit(request, {
+      key: buildRateLimitKey(request, 'auth:verify', walletAddress),
+      limit: 10,
+      windowMs: 60_000,
+    })
+    if (limited) return limited
 
     if (!walletAddress || !nonce || !signature) {
       return NextResponse.json(

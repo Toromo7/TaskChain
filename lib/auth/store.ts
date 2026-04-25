@@ -144,3 +144,66 @@ export async function findValidRefreshToken({
 
   return rows.length > 0
 }
+
+export async function rotateRefreshToken({
+  walletAddress,
+  currentJti,
+  currentTokenHash,
+  newJti,
+  newTokenHash,
+  newExpiresAt,
+  userAgent,
+  ipAddress,
+}: {
+  walletAddress: string
+  currentJti: string
+  currentTokenHash: string
+  newJti: string
+  newTokenHash: string
+  newExpiresAt: Date
+  userAgent: string | null
+  ipAddress: string | null
+}): Promise<boolean> {
+  const rows = await sql<{ rotated: string | number }[]>`
+    WITH old AS (
+      SELECT id
+      FROM auth_refresh_tokens
+      WHERE wallet_address = ${walletAddress}
+        AND jti = ${currentJti}
+        AND token_hash = ${currentTokenHash}
+        AND revoked_at IS NULL
+        AND expires_at > NOW()
+      FOR UPDATE
+    ),
+    ins AS (
+      INSERT INTO auth_refresh_tokens (
+        wallet_address,
+        jti,
+        token_hash,
+        expires_at,
+        user_agent,
+        ip_address
+      )
+      SELECT
+        ${walletAddress},
+        ${newJti},
+        ${newTokenHash},
+        ${newExpiresAt.toISOString()},
+        ${userAgent},
+        ${ipAddress}
+      WHERE EXISTS (SELECT 1 FROM old)
+      RETURNING jti
+    ),
+    upd AS (
+      UPDATE auth_refresh_tokens
+      SET revoked_at = NOW(),
+          replaced_by_jti = (SELECT jti FROM ins),
+          last_used_at = NOW()
+      WHERE id IN (SELECT id FROM old)
+      RETURNING id
+    )
+    SELECT (SELECT COUNT(*) FROM upd) AS rotated
+  `
+
+  return Number(rows[0]?.rotated ?? 0) === 1
+}

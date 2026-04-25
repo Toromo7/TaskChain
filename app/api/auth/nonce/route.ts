@@ -2,20 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { NONCE_TTL_SECONDS } from '@/lib/auth/constants'
 import { randomNonce, sha256Hex } from '@/lib/auth/crypto'
 import { saveNonce } from '@/lib/auth/store'
+import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
+import { parseJson } from '@/lib/security/validation'
 import {
   buildAuthMessage,
   isValidStellarAddress,
   normalizeWalletAddress,
 } from '@/lib/auth/stellar'
+import { z } from 'zod'
 
-interface NonceRequestBody {
-  walletAddress?: string
-}
+const nonceBodySchema = z.object({
+  walletAddress: z.string().trim().min(1).max(56),
+})
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body: NonceRequestBody = await request.json()
-    const walletAddress = body.walletAddress?.trim()
+    const parsed = await parseJson(request, nonceBodySchema)
+    if ('response' in parsed) return parsed.response
+
+    const walletAddress = parsed.data.walletAddress
+
+    const limited = await enforceRateLimit(request, {
+      key: buildRateLimitKey(request, 'auth:nonce', walletAddress),
+      limit: 5,
+      windowMs: 60_000,
+    })
+    if (limited) return limited
 
     if (!walletAddress || !isValidStellarAddress(walletAddress)) {
       return NextResponse.json(
