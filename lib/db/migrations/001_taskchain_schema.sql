@@ -319,6 +319,25 @@ CREATE INDEX idx_disputes_resolver ON disputes (resolver_id)
 
 -- OPTIONAL EXTENSION TABLES (future-ready stubs)
 
+-- ADMIN AUDIT LOGS
+CREATE TABLE admin_audit_logs (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_user_id    UUID        NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
+  action           TEXT        NOT NULL,                          -- e.g. 'FREEZE_CONTRACT', 'BAN_USER', 'VIEW_DISPUTES'
+  target_type      TEXT,                                        -- e.g. 'contract', 'user', 'dispute'
+  target_id        UUID,                                        -- ID of the target record
+  details          JSONB       NOT NULL DEFAULT '{}',           -- additional context
+  ip_address       TEXT,
+  user_agent       TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_audit_logs_admin_user ON admin_audit_logs (admin_user_id);
+CREATE INDEX idx_admin_audit_logs_action ON admin_audit_logs (action);
+CREATE INDEX idx_admin_audit_logs_created_at ON admin_audit_logs (created_at DESC);
+
+-- OPTIONAL EXTENSION TABLES (future-ready stubs)
+
 -- Ratings & Reviews
 CREATE TABLE reviews (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
