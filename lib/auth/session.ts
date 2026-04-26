@@ -8,10 +8,9 @@ import {
 import { sha256Hex } from '@/lib/auth/crypto'
 import { signSessionToken, verifySessionToken } from '@/lib/auth/jwt'
 import {
-  findValidRefreshToken,
   revokeRefreshToken,
+  rotateRefreshToken,
   storeRefreshToken,
-  touchRefreshToken,
 } from '@/lib/auth/store'
 import { normalizeWalletAddress } from '@/lib/auth/stellar'
 
@@ -42,23 +41,20 @@ function getClientIp(request: NextRequest): string | null {
   return request.headers.get('x-real-ip')
 }
 
-export async function createSession(
-  request: NextRequest,
-  walletAddress: string
-): Promise<AuthSession> {
-  const normalizedWallet = normalizeWalletAddress(walletAddress)
-  const secret = getJwtSecret()
-
+function buildSessionTokens(
+  walletAddress: string,
+  secret: string
+): Omit<AuthSession, 'walletAddress'> {
   const access = signSessionToken({
-    subject: normalizedWallet,
-    walletAddress: normalizedWallet,
+    subject: walletAddress,
+    walletAddress,
     type: 'access',
     expiresInSeconds: ACCESS_TOKEN_TTL_SECONDS,
     secret,
   })
   const refresh = signSessionToken({
-    subject: normalizedWallet,
-    walletAddress: normalizedWallet,
+    subject: walletAddress,
+    walletAddress,
     type: 'refresh',
     expiresInSeconds: REFRESH_TOKEN_TTL_SECONDS,
     secret,
@@ -67,22 +63,36 @@ export async function createSession(
   const accessTokenExpiresAt = new Date(access.payload.exp * 1000)
   const refreshTokenExpiresAt = new Date(refresh.payload.exp * 1000)
 
+  return {
+    accessToken: access.token,
+    refreshToken: refresh.token,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+    refreshJti: refresh.payload.jti,
+  }
+}
+
+export async function createSession(
+  request: NextRequest,
+  walletAddress: string
+): Promise<AuthSession> {
+  const normalizedWallet = normalizeWalletAddress(walletAddress)
+  const secret = getJwtSecret()
+
+  const tokens = buildSessionTokens(normalizedWallet, secret)
+
   await storeRefreshToken({
     walletAddress: normalizedWallet,
-    jti: refresh.payload.jti,
-    tokenHash: sha256Hex(refresh.token),
-    expiresAt: refreshTokenExpiresAt,
+    jti: tokens.refreshJti,
+    tokenHash: sha256Hex(tokens.refreshToken),
+    expiresAt: tokens.refreshTokenExpiresAt,
     userAgent: request.headers.get('user-agent'),
     ipAddress: getClientIp(request),
   })
 
   return {
     walletAddress: normalizedWallet,
-    accessToken: access.token,
-    refreshToken: refresh.token,
-    accessTokenExpiresAt,
-    refreshTokenExpiresAt,
-    refreshJti: refresh.payload.jti,
+    ...tokens,
   }
 }
 
@@ -96,24 +106,27 @@ export async function rotateSession(
     return null
   }
 
-  const tokenHash = sha256Hex(refreshToken)
-  const isValid = await findValidRefreshToken({
-    walletAddress: payload.wallet,
-    jti: payload.jti,
-    tokenHash,
+  const normalizedWallet = normalizeWalletAddress(payload.wallet)
+  const nextTokens = buildSessionTokens(normalizedWallet, secret)
+
+  const rotated = await rotateRefreshToken({
+    walletAddress: normalizedWallet,
+    currentJti: payload.jti,
+    currentTokenHash: sha256Hex(refreshToken),
+    newJti: nextTokens.refreshJti,
+    newTokenHash: sha256Hex(nextTokens.refreshToken),
+    newExpiresAt: nextTokens.refreshTokenExpiresAt,
+    userAgent: request.headers.get('user-agent'),
+    ipAddress: getClientIp(request),
   })
-  if (!isValid) {
+  if (!rotated) {
     return null
   }
 
-  await touchRefreshToken(payload.jti)
-  const session = await createSession(request, payload.wallet)
-  await revokeRefreshToken({
-    jti: payload.jti,
-    replacedByJti: session.refreshJti,
-  })
-
-  return session
+  return {
+    walletAddress: normalizedWallet,
+    ...nextTokens,
+  }
 }
 
 export async function revokeSession(refreshToken: string): Promise<void> {

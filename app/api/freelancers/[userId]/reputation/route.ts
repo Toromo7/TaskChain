@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 import {
   getFreelancerReputation,
   userExists,
@@ -7,6 +8,13 @@ import {
 type RouteContext = { params: Promise<{ userId: string }> }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  const limited = await enforceRateLimit(_request, {
+    key: buildRateLimitKey(_request, 'freelancers:reputation'),
+    limit: 120,
+    windowMs: 60_000,
+  })
+  if (limited) return limited
+
   const { userId: rawId } = await context.params
   const id = Number.parseInt(rawId, 10)
 

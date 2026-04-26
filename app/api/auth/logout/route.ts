@@ -4,9 +4,17 @@ import {
   readRefreshToken,
   revokeSession,
 } from '@/lib/auth/session'
+import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const limited = await enforceRateLimit(request, {
+      key: buildRateLimitKey(request, 'auth:logout'),
+      limit: 20,
+      windowMs: 60_000,
+    })
+    if (limited) return limited
+
     const refreshToken = readRefreshToken(request)
     if (refreshToken) {
       await revokeSession(refreshToken)
