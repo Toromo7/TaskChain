@@ -1,53 +1,35 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { sql } from '@/lib/db'
 
-export const dynamic = 'force-dynamic'
-
-// GET /api/projects/[id] — returns a single project + its milestones
 export const GET = withAuth(async (request: NextRequest, auth) => {
   const id = request.nextUrl.pathname.split('/').pop()
 
-  // Resolve wallet → user id
   const userRows = await sql<{ id: string }[]>`
     SELECT id FROM users WHERE wallet_address = ${auth.walletAddress} LIMIT 1
   `
   if (!userRows.length) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-  const clientId = userRows[0].id
 
-  // Fetch project (must belong to this client)
   const projectRows = await sql<{
-    id: string
-    title: string
-    description: string
-    status: string
-    budget_max: string | null
-    currency: string
-    deadline: string | null
-    created_at: string
+    id: string; title: string; description: string; status: string
+    budget_max: string | null; currency: string; deadline: string | null; created_at: string
   }[]>`
     SELECT id, title, description, status, budget_max, currency, deadline, created_at
     FROM projects
-    WHERE id = ${id} AND client_id = ${clientId}
+    WHERE id = ${id} AND client_id = ${userRows[0].id}
     LIMIT 1
   `
-
   if (!projectRows.length) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
-  // Fetch milestones
   const milestones = await sql<{
-    id: string
-    title: string
-    description: string | null
-    amount: string
-    currency: string
-    due_date: string | null
-    status: string
-    sort_order: number
+    id: string; title: string; description: string | null; amount: string
+    currency: string; due_date: string | null; status: string; sort_order: number
   }[]>`
     SELECT id, title, description, amount, currency, due_date, status, sort_order
     FROM milestones

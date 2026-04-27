@@ -1,9 +1,9 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { z } from 'zod'
 import { verifyAccessToken } from '@/lib/auth/session'
-
-export const dynamic = 'force-dynamic'
 
 const MOCK_WALLET = 'GMOCKUSER1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'
 
@@ -26,7 +26,6 @@ const bodySchema = z.object({
 })
 
 async function saveProject(walletAddress: string, body: z.infer<typeof bodySchema>) {
-  // Auto-create user row if missing (handles mock wallet)
   let rows = await sql<{ id: string }[]>`
     SELECT id FROM users WHERE wallet_address = ${walletAddress} LIMIT 1
   `
@@ -78,7 +77,6 @@ async function saveProject(walletAddress: string, body: z.infer<typeof bodySchem
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Resolve wallet — try JWT first, fall back to mock wallet in dev
   let walletAddress: string | null = null
 
   const authHeader = request.headers.get('authorization')
@@ -94,11 +92,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    // Dev only: use mock wallet so testing is never blocked by token state
     walletAddress = MOCK_WALLET
   }
 
-  // Parse body
   let raw: unknown
   try { raw = await request.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
@@ -113,7 +109,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await saveProject(walletAddress, parsed.data)
     return NextResponse.json({ ...result, status: 'draft' }, { status: 201 })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Database error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Database error' }, { status: 500 })
   }
 }
