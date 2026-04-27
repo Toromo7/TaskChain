@@ -4,6 +4,8 @@ import {
   readRefreshToken,
   revokeSession,
 } from '@/lib/auth/session'
+
+export const dynamic = 'force-dynamic'
 import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

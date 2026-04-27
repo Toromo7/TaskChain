@@ -5,6 +5,8 @@ import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '@/lib/auth/
 import { randomId, sha256Hex } from '@/lib/auth/crypto'
 import { sql } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // ─── Dev-only mock auth route ─────────────────────────────────────────────────
 // Issues a real JWT session for a fake Stellar address so you can test the
 // full DB + dashboard flow without a real wallet.
