@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { sql } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/projects — returns all projects for the authenticated user
 export const GET = withAuth(async (_request: NextRequest, auth) => {
   // Resolve wallet → user id

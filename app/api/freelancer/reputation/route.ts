@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
+
+export const dynamic = 'force-dynamic'
 import {
   getFreelancerReputation,
   getUserIdByWallet,

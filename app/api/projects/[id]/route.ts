@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { sql } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/projects/[id] — returns a single project + its milestones
 export const GET = withAuth(async (request: NextRequest, auth) => {
   const id = request.nextUrl.pathname.split('/').pop()

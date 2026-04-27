@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { withAuth } from '@/lib/auth/middleware'
 
+export const dynamic = 'force-dynamic'
+
 export const POST = withAuth(async (request: NextRequest, auth) => {
   try {
     const body = await request.json()

@@ -11,6 +11,8 @@ import {
 } from '@/lib/auth/stellar'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const nonceBodySchema = z.object({
   walletAddress: z.string().trim().min(1).max(56),
 })

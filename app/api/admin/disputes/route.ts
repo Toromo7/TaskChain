@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAdmin, AdminContext } from '@/lib/auth/adminMiddleware'
 import { sql } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/disputes
 export async function GET(request: NextRequest) {
   return withAdmin(async (request, auth: AdminContext) => {

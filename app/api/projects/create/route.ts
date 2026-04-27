@@ -3,6 +3,8 @@ import { sql } from '@/lib/db'
 import { z } from 'zod'
 import { verifyAccessToken } from '@/lib/auth/session'
 
+export const dynamic = 'force-dynamic'
+
 const MOCK_WALLET = 'GMOCKUSER1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'
 
 const milestoneSchema = z.object({

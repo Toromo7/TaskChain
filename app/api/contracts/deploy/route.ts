@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { deploySorobanEscrow, SorobanDeployError } from '@/lib/soroban/deploy'
+
+export const dynamic = 'force-dynamic'
 import {
   createContract,
   createMilestones,

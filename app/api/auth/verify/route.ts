@@ -4,6 +4,8 @@ import { consumeNonce, hasActiveNonce } from '@/lib/auth/store'
 import { sha256Hex } from '@/lib/auth/crypto'
 import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 import { parseJson } from '@/lib/security/validation'
+
+export const dynamic = 'force-dynamic'
 import {
   buildAuthMessage,
   isValidStellarAddress,

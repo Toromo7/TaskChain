@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = withAuth(async (_request, auth) => {
   const limited = await enforceRateLimit(_request, {
     key: buildRateLimitKey(_request, 'auth:me', auth.walletAddress),

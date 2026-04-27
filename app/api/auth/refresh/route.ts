@@ -6,6 +6,8 @@ import {
 } from '@/lib/auth/session'
 import { enforceRateLimit, buildRateLimitKey } from '@/lib/security/rateLimit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const limited = await enforceRateLimit(request, {

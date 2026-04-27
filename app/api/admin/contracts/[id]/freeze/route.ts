@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAdmin, AdminContext } from '@/lib/auth/adminMiddleware'
 import { sql } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/admin/contracts/[id]/freeze
 // Freeze a contract (admin action)
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

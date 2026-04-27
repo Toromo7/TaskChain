@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { withAuth } from '@/lib/auth/middleware'
 
+export const dynamic = 'force-dynamic'
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 export const GET = withAuth(async (_request: NextRequest, auth, context: RouteContext) => {
